@@ -17,6 +17,10 @@ import pytz
 import json
 import os
 
+
+from datetime import timedelta
+start_date = (datetime.now() - timedelta(days=200)).strftime("%Y-%m-%d")
+
 warnings.filterwarnings("ignore")
 
 # ─────────────────────────────────────────────
@@ -400,9 +404,9 @@ def apply_conditions(df: pd.DataFrame, min_conditions: int) -> pd.DataFrame:
 def download_and_analyze(ticker: str, min_conditions: int) -> dict:
     try:
         end_date = datetime.now().strftime("%Y-%m-%d")
-        df_d = yf.download(ticker, start="2020-01-01", end=end_date,
+        df_d = yf.download(ticker, start_date, end=end_date,
                    progress=False, auto_adjust=False, interval='1d')
-        df_w = yf.download(ticker, start="2020-01-01", end=end_date,
+        df_w = yf.download(ticker, start_date, end=end_date,
                    progress=False, auto_adjust=False, interval='1wk')
 
         for df in [df_d, df_w]:

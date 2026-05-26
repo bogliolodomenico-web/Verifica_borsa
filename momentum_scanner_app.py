@@ -509,7 +509,7 @@ def render_ticker_card(ticker: str, nome: str, data: dict, changed: bool = False
     # Determina classe base della card (senza tenere conto di changed)
     if not liq:
         base_cls = "card-illiquid"
-        badge = '<span class="badge-warn">⚠ ILLIQUIDO</span>'
+        badge = '<span class="badge-warn">⚠ LIQUIDO</span>'
     else:
         if sa:
             base_cls = "card-buy"

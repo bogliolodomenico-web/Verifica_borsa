@@ -123,9 +123,9 @@ hide_streamlit_style = """
             box-shadow: 0 4px 12px rgba(35,134,54,0.5) !important;
         }
         
-        /* ========== CARD CON BORDI EVIDENZIATI ========== */
-        .card-setup-on {
-            background: linear-gradient(135deg, #0d2818 0%, #0f3320 100%);
+        /* ========== CARD BUY (sfondo chiaro verde) ========== */
+        .card-buy {
+            background: linear-gradient(135deg, #e6f4ea 0%, #d0ebd6 100%);
             border: 2px solid #238636 !important;
             border-radius: 12px;
             padding: 1.2rem 1.4rem;
@@ -133,36 +133,39 @@ hide_streamlit_style = """
             box-shadow: 0 2px 8px rgba(35,134,54,0.2);
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        .card-setup-on:hover {
+        .card-buy:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(35,134,54,0.4);
         }
-        .card-setup-off {
-            background: linear-gradient(135deg, #1a0e0e 0%, #220f0f 100%);
+        
+        /* ========== CARD SELL (sfondo chiaro rosso) ========== */
+        .card-sell {
+            background: linear-gradient(135deg, #fce8e6 0%, #f8d7d5 100%);
             border: 2px solid #da3633 !important;
             border-radius: 12px;
             padding: 1.2rem 1.4rem;
             margin-bottom: 0.8rem;
             box-shadow: 0 2px 8px rgba(218,54,51,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .card-setup-off:hover {
+        .card-sell:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(218,54,51,0.3);
         }
+        
+        /* CARD per titoli illiquidi (ambrato) */
         .card-illiquid {
-            background: linear-gradient(135deg, #1a1200 0%, #221800 100%);
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe6b3 100%);
             border: 2px solid #d29922 !important;
             border-radius: 12px;
             padding: 1.2rem 1.4rem;
             margin-bottom: 0.8rem;
         }
+        
+        /* Classe aggiuntiva per cambio stato (bordo pulsante blu) */
         .card-changed {
-            background: linear-gradient(135deg, #0d1b2a 0%, #12263d 100%);
-            border: 2px solid #1f6feb !important;
-            border-radius: 12px;
-            padding: 1.2rem 1.4rem;
-            margin-bottom: 0.8rem;
             animation: pulse-blue 1s ease-in-out;
+            border-width: 3px !important;
         }
         @keyframes pulse-blue {
             0% { border-color: #1f6feb; box-shadow: 0 0 0 0 rgba(31,111,235,0.4); }
@@ -175,11 +178,31 @@ hide_streamlit_style = """
             font-family: 'IBM Plex Mono', monospace;
             font-size: 1.2rem;
             font-weight: 600;
-            color: #f5e6d3;
+            color: #1a1a1a;
         }
-        .badge-on, .badge-off, .badge-warn, .badge-changed {
+        .badge-buy, .badge-sell, .badge-warn, .badge-changed {
             font-weight: 700;
             letter-spacing: 0.5px;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            margin-left: 10px;
+        }
+        .badge-buy {
+            background-color: #238636;
+            color: white;
+        }
+        .badge-sell {
+            background-color: #da3633;
+            color: white;
+        }
+        .badge-warn {
+            background-color: #d29922;
+            color: #1a1a1a;
+        }
+        .badge-changed {
+            background-color: #1f6feb;
+            color: white;
         }
         
         /* Riquadro header (avorio) */
@@ -196,6 +219,15 @@ hide_streamlit_style = """
         }
         .scanner-header p {
             color: #5a4a3a;
+        }
+        
+        /* Testo prezzi su sfondo chiaro */
+        .card-buy .ticker-name, .card-sell .ticker-name {
+            color: #1a1a1a;
+        }
+        .card-buy [style*="font-family:IBM Plex Mono"], 
+        .card-sell [style*="font-family:IBM Plex Mono"] {
+            color: #1a1a1a !important;
         }
     </style>
 """
@@ -454,19 +486,19 @@ def _bar_html(score: int, max_score: int, label: str) -> str:
     else:
         fill = "background:linear-gradient(90deg,#da3633,#f85149)"
     return (f'<div style="margin-top:0.45rem;">'
-            f'<div style="font-size:0.72rem;color:#7d8590;'
+            f'<div style="font-size:0.72rem;color:#4a4a4a;'
             f'font-family:IBM Plex Mono,monospace;margin-bottom:3px;">'
             f'{label} {score}/{max_score}</div>'
-            f'<div style="background:#21262d;border-radius:4px;height:6px;'
+            f'<div style="background:#e0e0e0;border-radius:4px;height:6px;'
             f'width:100%;overflow:hidden;">'
             f'<div style="height:6px;border-radius:4px;width:{pct}%;{fill}"></div>'
             f'</div></div>')
 
 def render_ticker_card(ticker: str, nome: str, data: dict, changed: bool = False):
     if data.get("error"):
-        st.markdown(f'<div class="card-setup-off">'
+        st.markdown(f'<div class="card-sell">'
                     f'<span class="ticker-name">{ticker}</span>'
-                    f'<span class="badge-off">ERRORE</span>'
+                    f'<span class="badge-sell">ERRORE</span>'
                     f'<div style="color:#6e4040;font-size:0.8rem;margin-top:0.5rem;">'
                     f'{data["error"]}</div></div>', unsafe_allow_html=True)
         return
@@ -474,51 +506,58 @@ def render_ticker_card(ticker: str, nome: str, data: dict, changed: bool = False
     sa  = data["setup_active"]
     liq = data["liquidity_ok"]
 
-    card_cls = ("card-changed"   if changed else
-                "card-illiquid"  if not liq else
-                "card-setup-on"  if sa      else
-                "card-setup-off")
+    # Determina classe base della card (senza tenere conto di changed)
+    if not liq:
+        base_cls = "card-illiquid"
+        badge = '<span class="badge-warn">⚠ ILLIQUIDO</span>'
+    else:
+        if sa:
+            base_cls = "card-buy"
+            badge = '<span class="badge-buy">BUY</span>'
+        else:
+            base_cls = "card-sell"
+            badge = '<span class="badge-sell">SELL</span>'
 
-    badge = ('<span class="badge-warn">⚠ ILLIQUIDO</span>' if not liq else
-             '<span class="badge-on">▲ SETUP ON</span>'    if sa      else
-             '<span class="badge-off">▼ SETUP OFF</span>')
+    # Aggiunge eventuale classe per cambio stato (solo bordo animato)
+    if changed:
+        base_cls += " card-changed"
 
     changed_badge = '<span class="badge-changed">⚡ CAMBIO</span>' if changed else ""
 
     px = data["rt_price"] if data.get("rt_price") else data["price"]
 
     if data.get("rt_today"):
-        t_html = (f'<span style="color:#3fb950;font-size:0.7rem;font-family:monospace;">'
+        t_html = (f'<span style="color:#1a1a1a;font-size:0.7rem;font-family:monospace;">'
                   f'🔴 LIVE {data["rt_time"]}</span>')
     elif data.get("rt_time"):
-        t_html = (f'<span style="color:#7d8590;font-size:0.7rem;font-family:monospace;">'
+        t_html = (f'<span style="color:#4a4a4a;font-size:0.7rem;font-family:monospace;">'
                   f'📅 {data["rt_time"]}</span>')
     else:
-        t_html = (f'<span style="color:#4d5566;font-size:0.7rem;font-family:monospace;">'
+        t_html = (f'<span style="color:#4a4a4a;font-size:0.7rem;font-family:monospace;">'
                   f'📅 chiusura {data["date"]}</span>')
 
     ytd_html = ""
     if data.get("ytd_ret") is not None:
-        c = "#3fb950" if data["ytd_ret"] >= 0 else "#f85149"
+        c = "#238636" if data["ytd_ret"] >= 0 else "#da3633"
         ytd_html = f'<span style="color:{c};font-size:0.78rem;margin-left:10px;">YTD {data["ytd_ret"]:+.1f}%</span>'
 
     w52_html = ""
     if data.get("w52_high"):
         d52 = (px / data["w52_high"] - 1) * 100
-        w52_html = f'<span style="color:#7d8590;font-size:0.75rem;margin-left:8px;">Max52w {d52:+.1f}%</span>'
+        w52_html = f'<span style="color:#4a4a4a;font-size:0.75rem;margin-left:8px;">Max52w {d52:+.1f}%</span>'
 
     gate_bar  = _bar_html(data["gate_score"], 4, "GATE")
     score_bar = _bar_html(data["score"],      6, "SCORE")
 
     st.markdown(
-        f'<div class="{card_cls}">'
+        f'<div class="{base_cls}">'
         f'<div style="display:flex;align-items:center;flex-wrap:wrap;">'
         f'<span class="ticker-name">{ticker}</span>'
-        f'<span style="color:#7d8590;font-size:0.85rem;margin-left:8px;">{nome}</span>'
+        f'<span style="color:#4a4a4a;font-size:0.85rem;margin-left:8px;">{nome}</span>'
         f'{badge}{changed_badge}</div>'
         f'<div style="margin-top:0.4rem;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px;">'
         f'<span style="font-family:IBM Plex Mono,monospace;font-size:1.25rem;'
-        f'color:#e6edf3;font-weight:700;">{px:.3f} €</span>'
+        f'color:#1a1a1a;font-weight:700;">{px:.3f} €</span>'
         f'{ytd_html}{w52_html}</div>'
         f'<div style="margin-top:2px;">{t_html}</div>'
         f'{gate_bar}{score_bar}'
@@ -572,7 +611,7 @@ with st.sidebar:
     st.markdown("### ⚠️ Livello di Rischio")
     st.caption(
         "Definisce quante **condizioni su 6** devono essere soddisfatte "
-        "per generare un segnale SETUP ON. "
+        "per generare un segnale BUY. "
         "Più alto = segnali rari ma affidabili. "
         "Più basso = segnali frequenti ma meno filtrati."
     )
@@ -744,8 +783,8 @@ n_err     = sum(1 for _, d in sorted_results if d.get("error"))
 n_changed = len(changed_tickers)
 
 c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric("✅ Setup ON",    n_on)
-c2.metric("⛔ Setup OFF",   n_off)
+c1.metric("✅ BUY",    n_on)
+c2.metric("❌ SELL",   n_off)
 c3.metric("⚡ Cambi stato", n_changed)
 c4.metric("⚠️ Errori",     n_err)
 c5.metric("🕒 Aggiornato",  datetime.now().strftime("%H:%M:%S"))
